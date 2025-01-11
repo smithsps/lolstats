@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1736619393755,
+      "tag": "0000_cultured_luke_cage",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1736621622349,
+      "tag": "0001_quick_calypso",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1736627158855,
+      "tag": "0002_magenta_korvac",
+      "breakpoints": true
+    }
+  ]
+}
