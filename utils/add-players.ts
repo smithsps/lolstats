@@ -1,6 +1,6 @@
 import { Constants } from "twisted";
 import { DB, lAPI, rAPI } from "..";
-import * as schema from "../schema";
+import * as schema from "../db/schema";
 
 const players = [
     { name: "Sparky", tag: "REAL" },

@@ -1,6 +1,6 @@
 import { Constants } from "twisted";
 import { DB, lAPI, rAPI } from "..";
-import * as schema from "../schema";
+import * as schema from "../db/schema";
 import { count, eq, type InferSelectModel } from "drizzle-orm";
 import type { MatchQueryV5DTO } from "twisted/dist/models-dto/matches/query-v5";
 
@@ -42,12 +42,14 @@ for (const p of players) {
     await DB.insert(schema.player_matches).values(records)
         .onConflictDoNothing();
 
+    const updateTime = Math.floor(Date.now() / 1000)
+
     await DB.insert(schema.player_last_update).values({
         puuid: p.puuid,
-        matches_last_updated: Date.now(),
+        matches_last_updated: updateTime,
     }).onConflictDoUpdate({
         target: schema.player_last_update.puuid,
-        set: { matches_last_updated: Date.now() },
+        set: { matches_last_updated: updateTime },
     });
 }
 
