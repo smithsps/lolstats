@@ -13,23 +13,30 @@ await migrate(EXPORT_DB, { migrationsFolder: "./drizzle-export" });
 
 const games = await DB.select().from(schema.matches);
 
+let i = 0;
 for (const g of games) {
     const m = g.match as MatchV5DTOs.MatchDto;
 
+    i += 1;
+    if (i % 100 == 0) {
+        await Bun.write(Bun.stdout, "#");
+    }
+
     type Match = InferSelectModel<typeof export_schema.matches>;
-    const matches: Match = {
+    const match: Match = {
         ...m.metadata,
         ...m.info,
     };
 
-    if (matches) {
-        await EXPORT_DB.insert(export_schema.matches).values(matches);
+    if (match) {
+        await EXPORT_DB.insert(export_schema.matches).values(match);
     }
 
     type Participant = InferSelectModel<typeof export_schema.participants>;
-    const participants: Participant[] = m.info.participants.map((p) => ({
+    const participants: Participant[] = m.info.participants.map((p, i) => ({
         matchId: m.metadata.matchId,
         ...p,
+        puuid: p.puuid !== "BOT" ? p.puuid : ("BOT" + i),
         riotIdName: p.riotIdName ?? "",
         riotIdGameName: p.riotIdGameName ?? "",
         eligibleForProgression: p.eligibleForProgression ? 1 : 0,
@@ -43,18 +50,23 @@ for (const g of games) {
         win: p.win ? 1 : 0,
     }));
 
-    if (participants) {
+    if (participants.length > 0) {
         await EXPORT_DB.insert(export_schema.participants).values(participants);
     }
 
     type Challenge = InferSelectModel<typeof export_schema.challenges>;
-    const challenges = m.info.participants.map((p) => ({
+    const challenges = m.info.participants.filter((p) => p?.challenges).map((
+        p,
+    ) => ({
         matchId: m.metadata.matchId,
+        puuid: p.puuid,
+        riotIdName: p.riotIdName ?? "",
+        riotIdGameName: p.riotIdGameName ?? "",
         ...p.challenges,
         assistStreakCount: p.challenges["12AssistStreakCount"],
     }));
 
-    if (challenges) {
+    if (challenges.length > 0) {
         await EXPORT_DB.insert(export_schema.challenges).values(challenges);
     }
 
@@ -76,31 +88,36 @@ for (const g of games) {
         towerFirst: t.objectives.tower.first ? 1 : 0,
         towerKills: t.objectives.tower.kills,
     }));
-    if (teams) {
+    if (teams.length > 0) {
         await EXPORT_DB.insert(export_schema.teams).values(teams);
     }
 
     type Ban = InferSelectModel<typeof export_schema.bans>;
 
+    let combined_bans: Ban[] = [];
     const t1 = m.info.teams[0];
-    const bans1: Ban[] = t1.bans.map((b) => ({
-        matchId: m.metadata.matchId,
-        teamId: t1.teamId,
-        championId: b.championId,
-        pickTurn: b.pickTurn,
-    }));
+    if (t1) {
+        const bans1: Ban[] = t1.bans.map((b) => ({
+            matchId: m.metadata.matchId,
+            teamId: t1.teamId,
+            championId: b.championId,
+            pickTurn: b.pickTurn,
+        }));
+        combined_bans = combined_bans.concat(bans1);
+    }
 
     const t2 = m.info.teams[1];
-    const bans2: Ban[] = t2.bans.map((b) => ({
-        matchId: m.metadata.matchId,
-        teamId: t2.teamId,
-        championId: b.championId,
-        pickTurn: b.pickTurn,
-    }));
+    if (t2) {
+        const bans2: Ban[] = t2.bans.map((b) => ({
+            matchId: m.metadata.matchId,
+            teamId: t2.teamId,
+            championId: b.championId,
+            pickTurn: b.pickTurn,
+        }));
+        combined_bans = combined_bans.concat(bans2);
+    }
 
-    if (bans1 || bans2) {
-        await EXPORT_DB.insert(export_schema.bans).values(
-            [...bans1, ...bans2],
-        );
+    if (combined_bans.length > 0) {
+        await EXPORT_DB.insert(export_schema.bans).values(combined_bans);
     }
 }

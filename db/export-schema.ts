@@ -294,5 +294,5 @@ export const bans = sqliteTable("bans", {
     championId: integer("champion_id"),
     pickTurn: integer("pick_turn")
 }, (table) => [
-    primaryKey({ columns: [table.matchId, table.teamId] })
+    primaryKey({ columns: [table.matchId, table.teamId, table.pickTurn] })
 ]);

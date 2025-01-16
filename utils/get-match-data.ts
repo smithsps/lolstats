@@ -66,5 +66,5 @@ for (const match_id of match_ids) {
 }
 
 if (error_ids || error_timelines) {
-    console.log("Errors", error_ids, error_timelines)
+    console.log("\nErrors", error_ids, error_timelines)
 }
