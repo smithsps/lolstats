@@ -1,0 +1,1 @@
+ALTER TABLE `players` RENAME COLUMN "text" TO "name";

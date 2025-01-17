@@ -296,3 +296,10 @@ export const bans = sqliteTable("bans", {
 }, (table) => [
     primaryKey({ columns: [table.matchId, table.teamId, table.pickTurn] })
 ]);
+
+export const players = sqliteTable("players", {
+    puuid: text("puuid").primaryKey().notNull(),
+    name: text("name").notNull(),
+    tag: text("tag").notNull(),
+    isTracked: integer("is_tracked").notNull(),
+});

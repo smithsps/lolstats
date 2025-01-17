@@ -12,5 +12,9 @@
   "dependencies": {
     "drizzle-orm": "^0.38.3",
     "twisted": "^1.61.5"
+  },
+  "scripts": {
+    "db-migrate-export": "bunx drizzle-kit generate --dialect sqlite --schema ./db/export-schema.ts --out drizzle-export",
+    "db-migrate": "bunx drizzle-kit generate --dialect sqlite --schema ./db/schema.ts --out drizzle"
   }
 }

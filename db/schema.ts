@@ -4,7 +4,7 @@ export const players = sqliteTable("players", {
     puuid: text("puuid").primaryKey().notNull(),
     summonerId: text("summoner_id").notNull(),
     accountId: text("account_id").notNull(),
-    name: text("text").notNull(),
+    name: text("name").notNull(),
     tag: text("tag").notNull(),
 });
 

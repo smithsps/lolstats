@@ -7,11 +7,25 @@ import * as export_schema from "../db/export-schema";
 import type { MatchV5DTOs } from "twisted/dist/models-dto";
 import type { InferSelectModel } from "drizzle-orm";
 
+if (await Bun.file("export.db").exists()) {
+    await Bun.file("export.db").delete()
+}
+
 const SQLITE = new Database("export.db");
 export const EXPORT_DB = drizzle(SQLITE);
 await migrate(EXPORT_DB, { migrationsFolder: "./drizzle-export" });
 
 const games = await DB.select().from(schema.matches);
+const players = await DB.select().from(schema.players);
+
+const allMatches = [];
+const allParticipants = [];
+const allChallenges = [];
+const allTeams = [];
+const allBans = [];
+
+type Player = InferSelectModel<typeof export_schema.players>;
+const allPlayers: { [id: string]: Player } = {};
 
 let i = 0;
 for (const g of games) {
@@ -29,7 +43,8 @@ for (const g of games) {
     };
 
     if (match) {
-        await EXPORT_DB.insert(export_schema.matches).values(match);
+        allMatches.push(match);
+        //await EXPORT_DB.insert(export_schema.matches).values(match);
     }
 
     type Participant = InferSelectModel<typeof export_schema.participants>;
@@ -51,7 +66,19 @@ for (const g of games) {
     }));
 
     if (participants.length > 0) {
-        await EXPORT_DB.insert(export_schema.participants).values(participants);
+        allParticipants.push(...participants);
+        //await EXPORT_DB.insert(export_schema.participants).values(participants);
+
+        allParticipants.forEach((p) => {
+            if (p.puuid && p.riotIdGameName && p.riotIdTagline) {
+                allPlayers[p.puuid] = {
+                    puuid: p.puuid,
+                    name: p.riotIdGameName,
+                    tag: p.riotIdTagline,
+                    isTracked: 0
+                };
+            }
+        });
     }
 
     type Challenge = InferSelectModel<typeof export_schema.challenges>;
@@ -67,7 +94,8 @@ for (const g of games) {
     }));
 
     if (challenges.length > 0) {
-        await EXPORT_DB.insert(export_schema.challenges).values(challenges);
+        allChallenges.push(...challenges);
+        //await EXPORT_DB.insert(export_schema.challenges).values(challenges);
     }
 
     type Team = InferSelectModel<typeof export_schema.teams>;
@@ -89,7 +117,8 @@ for (const g of games) {
         towerKills: t.objectives.tower.kills,
     }));
     if (teams.length > 0) {
-        await EXPORT_DB.insert(export_schema.teams).values(teams);
+        allTeams.push(...teams);
+        //await EXPORT_DB.insert(export_schema.teams).values(teams);
     }
 
     type Ban = InferSelectModel<typeof export_schema.bans>;
@@ -118,6 +147,55 @@ for (const g of games) {
     }
 
     if (combined_bans.length > 0) {
-        await EXPORT_DB.insert(export_schema.bans).values(combined_bans);
+        allBans.push(...combined_bans);
+        //await EXPORT_DB.insert(export_schema.bans).values(combined_bans);
     }
 }
+
+for (const p of players) {
+    allPlayers[p.puuid] = {
+        puuid: p.puuid,
+        name: p.name,
+        tag: p.tag,
+        isTracked: 1
+    };
+}
+
+const allMatchesArray = Object.values(allPlayers);
+
+async function batch(
+    insert: any,
+    values: any[],
+    type: string,
+    batchSize = 100,
+) {
+    let i = 0;
+    while (i < values.length) {
+        await Bun.write(Bun.stdout, type);
+        await insert.values(values.slice(i, i + batchSize))
+            .onConflictDoNothing();
+        i += batchSize;
+    }
+}
+
+await batch(EXPORT_DB.insert(export_schema.matches), allMatches, "M", 2000);
+await batch(
+    EXPORT_DB.insert(export_schema.participants),
+    allParticipants,
+    "P",
+    500,
+);
+await batch(
+    EXPORT_DB.insert(export_schema.challenges),
+    allChallenges,
+    "C",
+    500,
+);
+await batch(EXPORT_DB.insert(export_schema.teams), allTeams, "T", 2000);
+await batch(EXPORT_DB.insert(export_schema.bans), allBans, "B", 2000);
+await batch(
+    EXPORT_DB.insert(export_schema.players),
+    allMatchesArray,
+    "P",
+    2000,
+);
