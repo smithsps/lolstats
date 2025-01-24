@@ -26,27 +26,30 @@ const players = [
     { name: "thresh b0t", tag: "NA1"}
 ];
 
-for (const p of players) {
-    const account = (await rAPI.Account.getByRiotId(
-        p.name,
-        p.tag,
-        Constants.RegionGroups.AMERICAS,
-    )).response;
-    console.log(account);
+export async function GetPlayerDetails() {
+    console.log("STEP 1: Getting player details.")
 
-    const player = (await lAPI.Summoner.getByPUUID(
-        account.puuid,
-        Constants.Regions.AMERICA_NORTH,
-    )).response;
-    console.log(player);
+    for (const p of players) {
+        const account = (await rAPI.Account.getByRiotId(
+            p.name,
+            p.tag,
+            Constants.RegionGroups.AMERICAS
+        )).response;
 
-    const result = await DB.insert(schema.players).values({
-        summonerId: player.id,
-        accountId: player.accountId,
-        puuid: player.puuid,
-        name: account.gameName,
-        tag: account.tagLine,
-    }).onConflictDoNothing();
+        const player = (await lAPI.Summoner.getByPUUID(
+            account.puuid,
+            Constants.Regions.AMERICA_NORTH
+        )).response;
 
-    console.log(result);
+        const result = await DB.insert(schema.players).values({
+            summonerId: player.id,
+            accountId: player.accountId,
+            puuid: player.puuid,
+            name: account.gameName,
+            tag: account.tagLine,
+        }).onConflictDoNothing();
+        await Bun.write(Bun.stdout, "#");
+    }
+    await Bun.write(Bun.stdout, "\n");
+    console.log("STEP 1: DONE.")
 }

@@ -13,7 +13,7 @@ export const player_matches = sqliteTable("player_matches", {
     matchId: text("match_id").notNull(),
 }, (table) => {
     return {
-        pk: primaryKey({ columns:  [table.puuid, table.matchId]})
+        pk: primaryKey({ columns: [table.puuid, table.matchId]})
     }
 })
 
@@ -30,4 +30,9 @@ export const matches = sqliteTable("matches", {
 export const match_timelines = sqliteTable("match_timelines", {
     matchId: text("match_id").primaryKey().notNull(),
     timeline: text("timeline", { mode: "json" }).notNull(),
+});
+
+export const player_ranked_stats = sqliteTable("player_ranked_stats", {
+    puuid: text("puuid").primaryKey().notNull(),
+    insertedAt: integer("inserted_at"),
 });
