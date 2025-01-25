@@ -23,7 +23,10 @@ const players = [
     { name: "voug", tag: "NA1" },
     { name: "ManakaRei", tag: "smoge" },
     { name: "C9 Vocaloid", tag: "NA1" },
-    { name: "thresh b0t", tag: "NA1"}
+    { name: "thresh b0t", tag: "NA1"},
+    { name: "fafs", tag: "NA1" },
+    { name: "Rinaria", tag: "NA1" },
+    { name: "bonebickler", tag: "bone" },
 ];
 
 export async function GetPlayerDetails() {
