@@ -11,8 +11,10 @@ const SQLITE = new Database("games.db");
 export const DB = drizzle(SQLITE);
 await migrate(DB, { migrationsFolder: "./drizzle" });
 
-export const rAPI = new RiotApi({ key: Bun.env.RIOT_API });
-export const lAPI = new LolApi({ key: Bun.env.RIOT_API });
+export const rAPI = new RiotApi({ key: Bun.env.RIOT_API, rateLimitRetry: true });
+export const lAPI = new LolApi({ key: Bun.env.RIOT_API, rateLimitRetry: true });
+
+
 
 await GetPlayerDetails();
 await GetPlayersNewMatchIds();

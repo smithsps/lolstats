@@ -36,6 +36,13 @@
       "when": 1737091707178,
       "tag": "0004_calm_spiral",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1737829746109,
+      "tag": "0005_regular_storm",
+      "breakpoints": true
     }
   ]
 }

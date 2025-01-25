@@ -25,12 +25,6 @@ export async function ExportData() {
     const games = await DB.select().from(schema.matches);
     const players = await DB.select().from(schema.players);
 
-    const allMatches = [];
-    const allParticipants = [];
-    const allChallenges = [];
-    const allTeams = [];
-    const allBans = [];
-
     let i = 0;
     for (const g of games) {
         const m = g.match as MatchV5DTOs.MatchDto;
@@ -40,15 +34,18 @@ export async function ExportData() {
             await Bun.write(Bun.stdout, "#");
         }
 
-        await mapMatch(m);
-        await mapParticipants(m);
-        await mapChallenges(m);
-        await mapTeams(m);
-        await mapBans(m);
-        await mapPlayers();
+        const last = i == games.length - 1;
+
+        await mapMatch(m, last);
+        await mapParticipants(m, last);
+        await mapChallenges(m, last);
+        await mapTeams(m, last);
+        await mapBans(m, last);
     }
+
     await Bun.write(Bun.stdout, "\n");
 
+    // Get all tracked players and mark them in aggergate.
     for (const p of players) {
         allPlayers[p.puuid] = {
             puuid: p.puuid,
@@ -57,6 +54,10 @@ export async function ExportData() {
             isTracked: 1,
         };
     }
+
+    await mapPlayers();
+
+    await Bun.write(Bun.stdout, "\n");
 
     // await writeData();
 
@@ -69,21 +70,125 @@ export async function ExportData() {
     console.log("STEP 4: Done, enjoy!");
 }
 
-async function mapMatch(m: MatchV5DTOs.MatchDto) {
-    type Match = InferSelectModel<typeof export_schema.matches>;
+type Match = InferSelectModel<typeof export_schema.matches>;
+const matchsAgg: Match[] = [];
+async function mapMatch(m: MatchV5DTOs.MatchDto, last: boolean) {
     const match: Match = {
         ...m.metadata,
         ...m.info,
     };
 
     if (match) {
-        await EXPORT_DB.insert(export_schema.matches).values(match);
+        matchsAgg.push(match);
+    }
+
+    if (matchsAgg.length > 500 || last && matchsAgg.length > 0) {
+        await EXPORT_DB.insert(export_schema.matches).values(matchsAgg);
+        matchsAgg.length = 0;
     }
 }
 
-async function mapBans(m: MatchV5DTOs.MatchDto) {
-    type Ban = InferSelectModel<typeof export_schema.bans>;
+type Participant = InferSelectModel<typeof export_schema.participants>;
+const participantAgg: Participant[] = [];
+async function mapParticipants(m: MatchV5DTOs.MatchDto, last: boolean) {
+    const participants: Participant[] = m.info.participants.map((p, i) => ({
+        matchId: m.metadata.matchId,
+        ...p,
+        puuid: p.puuid !== "BOT" ? p.puuid : ("BOT" + i),
+        riotIdName: p.riotIdName ?? "",
+        riotIdGameName: p.riotIdGameName ?? "",
+        eligibleForProgression: p.eligibleForProgression ? 1 : 0,
+        firstBloodAssist: p.firstBloodAssist ? 1 : 0,
+        firstBloodKill: p.firstBloodKill ? 1 : 0,
+        firstTowerAssist: p.firstTowerAssist ? 1 : 0,
+        firstTowerKill: p.firstTowerKill ? 1 : 0,
+        gameEndedInEarlySurrender: p.gameEndedInEarlySurrender ? 1 : 0,
+        gameEndedInSurrender: p.gameEndedInSurrender ? 1 : 0,
+        teamEarlySurrendered: p.teamEarlySurrendered ? 1 : 0,
+        win: p.win ? 1 : 0,
+    }));
 
+    if (participants.length > 0) {
+        participantAgg.push(...participants);
+
+        participants.forEach((p) => {
+            if (p.puuid && p.riotIdGameName && p.riotIdTagline) {
+                allPlayers[p.puuid] = {
+                    puuid: p.puuid,
+                    name: p.riotIdGameName,
+                    tag: p.riotIdTagline,
+                    isTracked: 0,
+                };
+            }
+        });
+    }
+
+    if (participantAgg.length > 500 || last && participantAgg.length > 0) {
+        await EXPORT_DB.insert(export_schema.participants).values(
+            participantAgg,
+        );
+        participantAgg.length = 0;
+    }
+}
+
+type Challenge = InferSelectModel<typeof export_schema.challenges>;
+const challengesAgg: Challenge[] = [];
+async function mapChallenges(m: MatchV5DTOs.MatchDto, last: boolean) {
+    const challenges: Challenge[] = m.info.participants.filter((p) =>
+        p?.challenges
+    ).map((
+        p,
+    ) => ({
+        matchId: m.metadata.matchId,
+        puuid: p.puuid,
+        ...p.challenges,
+        assistStreakCount: p.challenges["12AssistStreakCount"],
+    }));
+
+    if (challenges.length > 0) {
+        challengesAgg.push(...challenges);
+    }
+
+    if (challengesAgg.length > 500 || last && challengesAgg.length > 0) {
+        await EXPORT_DB.insert(export_schema.challenges).values(challengesAgg);
+        challengesAgg.length = 0;
+    }
+}
+
+type Team = InferSelectModel<typeof export_schema.teams>;
+const teamAgg: Team[] = [];
+async function mapTeams(m: MatchV5DTOs.MatchDto, last: boolean) {
+    const teams: Team[] = m.info.teams.map((t) => ({
+        matchId: m.metadata.matchId,
+        teamId: t.teamId,
+        win: t.win ? 1 : 0,
+        baronFirst: t.objectives.baron.first ? 1 : 0,
+        baronKills: t.objectives.baron.kills,
+        championFirst: t.objectives.champion.first ? 1 : 0,
+        championKills: t.objectives.champion.kills,
+        dragonFirst: t.objectives.dragon.first ? 1 : 0,
+        dragonKills: t.objectives.dragon.kills,
+        inhibitorFirst: t.objectives.inhibitor.first ? 1 : 0,
+        inhibitorKills: t.objectives.inhibitor.kills,
+        riftHeraldFirst: t.objectives.riftHerald.first ? 1 : 0,
+        riftHeraldKills: t.objectives.riftHerald.kills,
+        towerFirst: t.objectives.tower.first ? 1 : 0,
+        towerKills: t.objectives.tower.kills,
+    }));
+
+    if (teams.length > 0) {
+        teamAgg.push(...teams);
+    }
+
+    if (teamAgg.length > 500 || last && teamAgg.length > 0) {
+        await EXPORT_DB.insert(export_schema.teams).values(teamAgg);
+        teamAgg.length = 0;
+    }
+}
+
+type Ban = InferSelectModel<typeof export_schema.bans>;
+const bansAgg: Ban[] = [];
+async function mapBans(m: MatchV5DTOs.MatchDto, last: boolean) {
     let combined_bans: Ban[] = [];
     const t1 = m.info.teams[0];
     if (t1) {
@@ -110,81 +215,10 @@ async function mapBans(m: MatchV5DTOs.MatchDto) {
     if (combined_bans.length > 0) {
         await EXPORT_DB.insert(export_schema.bans).values(combined_bans);
     }
-}
 
-async function mapTeams(m: MatchV5DTOs.MatchDto) {
-    type Team = InferSelectModel<typeof export_schema.teams>;
-    const teams: Team[] = m.info.teams.map((t) => ({
-        matchId: m.metadata.matchId,
-        teamId: t.teamId,
-        win: t.win ? 1 : 0,
-        baronFirst: t.objectives.baron.first ? 1 : 0,
-        baronKills: t.objectives.baron.kills,
-        championFirst: t.objectives.champion.first ? 1 : 0,
-        championKills: t.objectives.champion.kills,
-        dragonFirst: t.objectives.dragon.first ? 1 : 0,
-        dragonKills: t.objectives.dragon.kills,
-        inhibitorFirst: t.objectives.inhibitor.first ? 1 : 0,
-        inhibitorKills: t.objectives.inhibitor.kills,
-        riftHeraldFirst: t.objectives.riftHerald.first ? 1 : 0,
-        riftHeraldKills: t.objectives.riftHerald.kills,
-        towerFirst: t.objectives.tower.first ? 1 : 0,
-        towerKills: t.objectives.tower.kills,
-    }));
-    if (teams.length > 0) {
-        await EXPORT_DB.insert(export_schema.teams).values(teams);
-    }
-}
-
-async function mapChallenges(m: MatchV5DTOs.MatchDto) {
-    type Challenge = InferSelectModel<typeof export_schema.challenges>;
-    const challenges = m.info.participants.filter((p) => p?.challenges).map((
-        p,
-    ) => ({
-        matchId: m.metadata.matchId,
-        puuid: p.puuid,
-        riotIdName: p.riotIdName ?? "",
-        riotIdGameName: p.riotIdGameName ?? "",
-        ...p.challenges,
-        assistStreakCount: p.challenges["12AssistStreakCount"],
-    }));
-
-    if (challenges.length > 0) {
-        await EXPORT_DB.insert(export_schema.challenges).values(challenges);
-    }
-}
-
-async function mapParticipants(m: MatchV5DTOs.MatchDto) {
-    type Participant = InferSelectModel<typeof export_schema.participants>;
-    const participants: Participant[] = m.info.participants.map((p, i) => ({
-        matchId: m.metadata.matchId,
-        ...p,
-        puuid: p.puuid !== "BOT" ? p.puuid : ("BOT" + i),
-        riotIdName: p.riotIdName ?? "",
-        riotIdGameName: p.riotIdGameName ?? "",
-        eligibleForProgression: p.eligibleForProgression ? 1 : 0,
-        firstBloodAssist: p.firstBloodAssist ? 1 : 0,
-        firstBloodKill: p.firstBloodKill ? 1 : 0,
-        firstTowerAssist: p.firstTowerAssist ? 1 : 0,
-        firstTowerKill: p.firstTowerKill ? 1 : 0,
-        gameEndedInEarlySurrender: p.gameEndedInEarlySurrender ? 1 : 0,
-        gameEndedInSurrender: p.gameEndedInSurrender ? 1 : 0,
-        teamEarlySurrendered: p.teamEarlySurrendered ? 1 : 0,
-        win: p.win ? 1 : 0,
-    }));
-
-    if (participants.length > 0) {
-        await EXPORT_DB.insert(export_schema.participants).values(participants);
-        participants.forEach((p) => {
-            if (p.puuid && p.riotIdGameName && p.riotIdTagline) {
-                allPlayers[p.puuid] = {
-                    puuid: p.puuid,
-                    name: p.riotIdGameName,
-                    tag: p.riotIdTagline,
-                    isTracked: 0,
-                };
-            }
-        });
+    if (bansAgg.length > 500 || last && bansAgg.length > 0) {
+        await EXPORT_DB.insert(export_schema.bans).values(bansAgg);
+        bansAgg.length = 0;
     }
 }
 
@@ -192,7 +226,7 @@ async function mapPlayers() {
     const players = Object.values(allPlayers);
     await batch(
         EXPORT_DB.insert(export_schema.players),
-        allPlayers,
+        players,
         "P",
         2000,
     );
@@ -211,22 +245,4 @@ async function batch(
             .onConflictDoNothing();
         i += batchSize;
     }
-}
-
-async function writeData() {
-    await batch(EXPORT_DB.insert(export_schema.matches), allMatches, "M", 2000);
-    await batch(
-        EXPORT_DB.insert(export_schema.participants),
-        allParticipants,
-        "P",
-        500,
-    );
-    await batch(
-        EXPORT_DB.insert(export_schema.challenges),
-        allChallenges,
-        "C",
-        500,
-    );
-    await batch(EXPORT_DB.insert(export_schema.teams), allTeams, "T", 2000);
-    await batch(EXPORT_DB.insert(export_schema.bans), allBans, "B", 2000);
 }

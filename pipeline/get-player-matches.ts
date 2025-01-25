@@ -12,9 +12,11 @@ export async function GetNewPlayerMatchIds() {
     const players = await DB.select().from(schema.players);
 
     for (const p of players) {
-        const lastUpdatedQuery = await DB.select().from(schema.player_last_update)
+        const lastUpdatedQuery = await DB.select().from(
+            schema.player_last_update,
+        )
             .where(
-                eq(schema.player_last_update.puuid, p.puuid)
+                eq(schema.player_last_update.puuid, p.puuid),
             );
 
         let matches;
@@ -26,11 +28,11 @@ export async function GetNewPlayerMatchIds() {
         }
 
         const totalStoredMatches = (await DB.select({ count: count() }).from(
-            schema.player_matches
+            schema.player_matches,
         ).where(eq(schema.player_matches.puuid, p.puuid)))[0].count;
 
         console.log(
-            `For ${p.name}#${p.tag} - Found ${matches.length} new matches / ${totalStoredMatches} stored.`
+            `For ${p.name}#${p.tag} - Found ${matches.length} new matches / ${totalStoredMatches} stored.`,
         );
 
         if (matches.length === 0) {
