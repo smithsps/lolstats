@@ -1,5 +1,6 @@
 import { Constants } from "twisted";
-import { DB, lAPI } from "..";
+import { lAPI } from "../api";
+import { DB } from "../db";
 import * as schema from "../db/schema";
 
 export async function GetNewMatchesAndTimelines() {
@@ -38,6 +39,7 @@ export async function GetNewMatchesAndTimelines() {
             } catch (e) {
                 if ((e as any).rateLimits) {
                     await Bun.write(Bun.stdout, "R");
+                    console.log("Matchid", match_id)
                     await Bun.sleep(125 * 1000); // Sometimes ratelimit retrys too fast?
                     await loadMatch(match_id);
                 }

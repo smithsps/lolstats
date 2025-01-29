@@ -1,5 +1,6 @@
 import { Constants } from "twisted";
-import { DB, lAPI, rAPI } from "..";
+import { lAPI, rAPI } from "../api";
+import { DB } from "../db";
 import * as schema from "../db/schema";
 import { count, eq, type InferSelectModel } from "drizzle-orm";
 import type { MatchQueryV5DTO } from "twisted/dist/models-dto/matches/query-v5";

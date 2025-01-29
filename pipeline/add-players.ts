@@ -1,5 +1,6 @@
 import { Constants } from "twisted";
-import { DB, lAPI, rAPI } from "..";
+import { lAPI, rAPI } from "../api";
+import { DB } from "../db";
 import * as schema from "../db/schema";
 
 const trackedPlayers = [
@@ -27,6 +28,11 @@ const trackedPlayers = [
     { name: "fafs", tag: "NA1" },
     { name: "Rinaria", tag: "NA1" },
     { name: "bonebickler", tag: "bone" },
+    { name: "SnackDragon", tag: "Cats"},
+    { name: "DragonSnack", tag: "Cats", alt: "Rezz"},
+    { name: "Dunktropolis", tag: "DUNK"},
+    { name: "Shadow Swipe", tag: "NA1"},
+    { name: "CowboyKitten", tag: "NA1"}
 ];
 
 export async function GetPlayerDetails() {

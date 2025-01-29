@@ -1,5 +1,6 @@
 import { Constants } from "twisted";
-import { DB, lAPI, rAPI } from "..";
+import { lAPI, rAPI } from "../api";
+import { DB } from "../db";
 import * as schema from "../db/schema";
 import { ConsoleLogWriter } from "drizzle-orm";
 

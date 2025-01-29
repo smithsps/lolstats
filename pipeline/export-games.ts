@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import { DB } from "..";
+import { DB } from "../db";
 import * as schema from "../db/schema";
 import * as export_schema from "../db/export-schema";
 import type {
