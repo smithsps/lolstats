@@ -6,6 +6,7 @@ export const players = sqliteTable("players", {
     accountId: text("account_id").notNull(),
     name: text("name").notNull(),
     tag: text("tag").notNull(),
+    alt: text("alt")
 });
 
 export const player_matches = sqliteTable("player_matches", {
@@ -33,6 +34,7 @@ export const match_timelines = sqliteTable("match_timelines", {
 });
 
 export const player_ranked_stats = sqliteTable("player_ranked_stats", {
-    puuid: text("puuid").primaryKey().notNull(),
-    insertedAt: integer("inserted_at"),
+    puuid: text("puuid").notNull(),
+    insertedAt: integer("inserted_at").notNull(),
+    league: text("league", { mode: "json" }).notNull()
 });

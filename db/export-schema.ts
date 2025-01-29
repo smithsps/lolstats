@@ -114,7 +114,7 @@ export const participants = sqliteTable('participants', {
     summonerName: text('summoner_name'),
     teamEarlySurrendered: integer('team_early_surrendered'),
     teamId: integer('team_id'),
-    teamPosition: text('iteam_position'),
+    teamPosition: text('team_position'),
     timeCCingOthers: integer('time_ccing_others'),
     timePlayed: integer('time_played'),
     totalAllyJungleMinionsKilled: integer('total_ally_jungle_minions_killed'),
@@ -305,4 +305,23 @@ export const players = sqliteTable("players", {
     name: text("name").notNull(),
     tag: text("tag").notNull(),
     isTracked: integer("is_tracked").notNull(),
+    alt: text("alt")
+});
+
+export const rankedStats = sqliteTable("ranked_stats", {
+    puuid: text("puuid").primaryKey().notNull(),
+    queueType: text("queue_type").notNull(),
+    tier: text("tier"),
+    rank: text("rank"),
+    wins: integer("wins"),
+    losses: integer("losses"),
+    hotStreak: integer("hot_streak"),
+    veteran: integer("veteran"),
+    inactive: integer("inactive"),
+    freshBlood: integer("fresh_blood"),
+    leaguePoints: integer("league_points"),
+    miniSeriesProgress: text("mini_series_progress"),
+    miniSeriesLosses: integer("mini_series_losses"),
+    miniSeriesTarget: integer("mini_series_target"),
+    miniSeriesWins: integer("mini_series_wins"),
 });

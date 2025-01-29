@@ -4,7 +4,11 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { DB } from "..";
 import * as schema from "../db/schema";
 import * as export_schema from "../db/export-schema";
-import type { MatchV5DTOs } from "twisted/dist/models-dto";
+import type {
+    LeagueItemDTO,
+    MatchV5DTOs,
+    SummonerLeagueDto,
+} from "twisted/dist/models-dto";
 import type { InferSelectModel } from "drizzle-orm";
 
 if (await Bun.file("export.db").exists()) {
@@ -20,7 +24,7 @@ type Player = InferSelectModel<typeof export_schema.players>;
 const allPlayers: { [id: string]: Player } = {};
 
 export async function ExportData() {
-    console.log("STEP 4: Export data to seperate SQLite database.");
+    console.log("STEP 5: Export data to seperate SQLite database.");
 
     const games = await DB.select().from(schema.matches);
     const players = await DB.select().from(schema.players);
@@ -52,10 +56,12 @@ export async function ExportData() {
             name: p.name,
             tag: p.tag,
             isTracked: 1,
+            alt: p.alt ?? p.name
         };
     }
 
     await mapPlayers();
+    await mapPlayerRankedStats();
 
     await Bun.write(Bun.stdout, "\n");
 
@@ -67,7 +73,7 @@ export async function ExportData() {
     // await VACUUM.exec("VACUUM");
     // await VACUUM.close();
 
-    console.log("STEP 4: Done, enjoy!");
+    console.log("STEP 5: Done, enjoy!");
 }
 
 type Match = InferSelectModel<typeof export_schema.matches>;
@@ -118,6 +124,7 @@ async function mapParticipants(m: MatchV5DTOs.MatchDto, last: boolean) {
                     name: p.riotIdGameName,
                     tag: p.riotIdTagline,
                     isTracked: 0,
+                    alt: p.riotIdGameName
                 };
             }
         });
@@ -230,6 +237,42 @@ async function mapPlayers() {
         "P",
         2000,
     );
+}
+
+type PlayerStats = InferSelectModel<typeof export_schema.rankedStats>;
+async function mapPlayerRankedStats() {
+    const rankedStats = await DB.select().from(schema.player_ranked_stats);
+
+    const latestStats: { [id: string]: InferSelectModel<typeof schema.player_ranked_stats> } = {};
+    for (const r of rankedStats) {
+        if (r.puuid in latestStats) {
+            if (r.insertedAt > latestStats[r.puuid].insertedAt) {
+                latestStats[r.puuid] = r;
+            }
+        } else {
+            latestStats[r.puuid] = r;
+        }
+    }
+
+    const exportStats: PlayerStats[] = Object.values(latestStats).map((s) => {
+        const league = s.league as SummonerLeagueDto;
+        return {
+            puuid: s.puuid,
+            ...league,
+            miniSeriesProgress: league?.miniSeries?.progress ?? null,
+            miniSeriesLosses: league?.miniSeries?.losses ?? null,
+            miniSeriesTarget: league?.miniSeries?.target ?? null,
+            miniSeriesWins: league?.miniSeries?.wins ?? null,
+            hotStreak: league.hotStreak ? 1 : 0,
+            veteran: league.veteran ? 1 : 0,
+            inactive: league.inactive ? 1 : 0,
+            freshBlood: league.freshBlood ? 1 : 0,
+        };
+    });
+
+    if (exportStats.length > 0) {
+        await EXPORT_DB.insert(export_schema.rankedStats).values(exportStats);
+    }
 }
 
 async function batch(

@@ -43,6 +43,20 @@
       "when": 1737829746109,
       "tag": "0005_regular_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1737871619914,
+      "tag": "0006_cold_sumo",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1737929600797,
+      "tag": "0007_crazy_oracle",
+      "breakpoints": true
     }
   ]
 }
