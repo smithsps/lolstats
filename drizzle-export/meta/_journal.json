@@ -57,6 +57,13 @@
       "when": 1737929600797,
       "tag": "0007_crazy_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1738374574225,
+      "tag": "0008_worthless_maverick",
+      "breakpoints": true
     }
   ]
 }

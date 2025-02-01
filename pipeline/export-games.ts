@@ -181,6 +181,10 @@ async function mapTeams(m: MatchV5DTOs.MatchDto, last: boolean) {
         riftHeraldKills: t.objectives.riftHerald.kills,
         towerFirst: t.objectives.tower.first ? 1 : 0,
         towerKills: t.objectives.tower.kills,
+        atakhanFirst: (t.objectives as any)?.atakhan?.first ? 1 : 0,
+        atakhanKills: (t.objectives as any)?.atakhan?.kills ?? 0,
+        voidGrubFirst: (t.objectives as any)?.horde?.first ? 1 : 0,
+        voidGrubKills: (t.objectives as any)?.horde?.kills ?? 0
     }));
 
     if (teams.length > 0) {

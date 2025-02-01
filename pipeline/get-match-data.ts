@@ -28,41 +28,38 @@ export async function GetNewMatchesAndTimelines() {
         } matches needed to download...`,
     );
 
-    const error_ids = [];
-    const error_timelines = [];
+    const error_ids: string[] = [];
+    const error_timelines: string[] = [];
 
     for (const match_id of match_ids) {
         if (!existing_match_ids.has(match_id)) {
             await Bun.write(Bun.stdout, "#");
-            try {
-                await loadMatch(match_id);
-            } catch (e) {
-                if ((e as any).rateLimits) {
-                    await Bun.write(Bun.stdout, "R");
-                    console.log("Matchid", match_id)
-                    await Bun.sleep(125 * 1000); // Sometimes ratelimit retrys too fast?
-                    await loadMatch(match_id);
-                }
 
-                console.log(e.constructor.name, match_id);
-                error_ids.push(match_id);
-            }
+            let sleep = false;
+            await loadMatch(match_id).catch((e) => {
+                if (e.status && e.status == 429) {
+                    Bun.write(Bun.stdout, "R"); 
+                    return Bun.sleep(125 * 1000);
+                } else {
+                    Bun.write(Bun.stdout, "E");
+                    error_ids.push(match_id);
+                }
+            });
         }
 
         if (!existing_timeline_ids.has(match_id)) {
             await Bun.write(Bun.stdout, "^");
-            try {
-                await loadTimeline(match_id);
-            } catch (e) {
-                if ((e as any).rateLimits) {
-                    await Bun.write(Bun.stdout, "R");
-                    await Bun.sleep(125 * 1000); // Sometimes ratelimit retrys too fast?
-                    await loadTimeline(match_id);
-                }
 
-                console.log(e.constructor.name, match_id);
-                error_timelines.push(match_id);
-            }
+            let sleep = false;
+            await loadTimeline(match_id).catch((e) => {
+                if (e.status && e.status == 429) {
+                    Bun.write(Bun.stdout, "R");
+                    return Bun.sleep(125 * 1000);
+                } else {
+                    Bun.write(Bun.stdout, "E");
+                    error_ids.push(match_id);
+                }
+            });
         }
     }
 

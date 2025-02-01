@@ -20,12 +20,23 @@ export async function GetNewPlayerMatchIds() {
                 eq(schema.player_last_update.puuid, p.puuid),
             );
 
+
         let matches;
+        let error = null;
         if (lastUpdatedQuery.length === 1) {
             const startTime = lastUpdatedQuery[0].matches_last_updated;
-            matches = await getMatchList(p, startTime);
+            matches = await getMatchList(p, startTime).catch((e) => {
+                error = e;
+            });
         } else {
-            matches = await getMatchList(p);
+            matches = await getMatchList(p).catch((e) => {
+                error = e;
+            });
+        }
+
+        if (error) {
+            console.log(`Error: (${(error as any).status}) could not get ${p.name}#${p.tag}`)
+            continue;
         }
 
         const totalStoredMatches = (await DB.select({ count: count() }).from(
@@ -58,6 +69,8 @@ export async function GetNewPlayerMatchIds() {
             set: { matches_last_updated: updateTime },
         });
     }
+
+    console.log("STEP 2: DONE.");
 }
 
 async function getMatchList(p: Player, startTime?: number): Promise<string[]> {
