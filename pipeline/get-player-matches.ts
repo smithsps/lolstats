@@ -36,6 +36,7 @@ export async function GetNewPlayerMatchIds() {
 
         if (error) {
             console.log(`Error: (${(error as any).status}) could not get ${p.name}#${p.tag}`)
+            //console.log(error.error.toJSON())
             continue;
         }
 
