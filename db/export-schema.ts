@@ -313,7 +313,7 @@ export const players = sqliteTable("players", {
 });
 
 export const rankedStats = sqliteTable("ranked_stats", {
-    puuid: text("puuid").primaryKey().notNull(),
+    puuid: text("puuid").notNull(),
     queueType: text("queue_type").notNull(),
     tier: text("tier"),
     rank: text("rank"),
@@ -328,4 +328,6 @@ export const rankedStats = sqliteTable("ranked_stats", {
     miniSeriesLosses: integer("mini_series_losses"),
     miniSeriesTarget: integer("mini_series_target"),
     miniSeriesWins: integer("mini_series_wins"),
-});
+}, (table) => [
+    primaryKey({ columns: [table.puuid, table.queueType] })
+]);

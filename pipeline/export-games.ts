@@ -247,18 +247,23 @@ type PlayerStats = InferSelectModel<typeof export_schema.rankedStats>;
 async function mapPlayerRankedStats() {
     const rankedStats = await DB.select().from(schema.player_ranked_stats);
 
-    const latestStats: { [id: string]: InferSelectModel<typeof schema.player_ranked_stats> } = {};
+    const allStats = [];
+
+    const flexLatestStats: { [id: string]: InferSelectModel<typeof schema.player_ranked_stats> } = {};
     for (const r of rankedStats) {
-        if (r.puuid in latestStats) {
-            if (r.insertedAt > latestStats[r.puuid].insertedAt) {
-                latestStats[r.puuid] = r;
+        const league = r.league as SummonerLeagueDto;
+        const key = r.puuid + league.queueType;
+
+        if (key in flexLatestStats) {
+            if (r.insertedAt > flexLatestStats[key].insertedAt) {
+                flexLatestStats[key] = r;
             }
         } else {
-            latestStats[r.puuid] = r;
+            flexLatestStats[key] = r;
         }
     }
 
-    const exportStats: PlayerStats[] = Object.values(latestStats).map((s) => {
+    const exportStats: PlayerStats[] = Object.values(flexLatestStats).map((s) => {
         const league = s.league as SummonerLeagueDto;
         return {
             puuid: s.puuid,
@@ -292,4 +297,68 @@ async function batch(
             .onConflictDoNothing();
         i += batchSize;
     }
+}
+
+
+function gameVersionToSeason(gameVersion: string) {
+    if (!gameVersion) {
+        return null;
+    }
+
+    const isPatchBetween = (version: string, start: string, end: string) => {
+        const v = version.split('.').map(n => parseInt(n));
+        const s = start.split('.').map(n => parseInt(n));
+        const e = end.split('.').map(n => parseInt(n));
+
+        return v[0] >= s[0] && v[1] >= s[1] && v[0] <= e[0] && v[1] <= e[1];
+    };
+
+
+
+    // 13.10
+    // 13.11
+    // 13.12
+    // 13.13
+    // 13.14
+    // 13.15
+    // 13.16
+    // 13.17
+    // 13.18
+    // 13.19
+    // 13.20
+    // 13.21
+    // 13.22
+    // 13.23
+    // 13.24
+    // 13.6
+    // 13.7
+    // 13.8
+    // 13.9
+    // 14.1
+    // 14.10
+    // 14.11
+    // 14.12
+    // 14.13
+    // 14.14
+    // 14.15
+    // 14.16
+    // 14.17
+    // 14.18
+    // 14.19
+    // 14.2
+    // 14.20
+    // 14.21
+    // 14.22
+    // 14.23
+    // 14.24
+    // 14.3
+    // 14.4
+    // 14.5
+    // 14.6
+    // 14.7
+    // 14.8
+    // 14.9
+    // 15.1
+    // 15.2
+    // 15.3
 }
