@@ -140,7 +140,7 @@ type RankedStats = {
 	alt: string,
 	naem: string,
 	tag: string,
-	queueType: string,
+	queue_type: string,
 	tier: string,
 	rank: string,
 	wins: number,
@@ -163,10 +163,40 @@ const romanNumeral = (numeral: string) => {
 	}
 }
 
+// Find the player's best rank across alts per a queue. 
+const playerBestRank: { [id: string]: string } = {};
+rankedResults.forEach((r) => {
+	const key = r.alt + r.queue_type;
+	const currTierRank = r.tier[0] + romanNumeral(r.rank)
+	if (key in playerBestRank) {
+		const TIERS: { [id: string]: number } = {
+			'I': 0,
+			'B': 1,
+			'S': 2,
+			'G': 3,
+			'P': 4,
+			'E': 5,
+			'D': 6,
+			'M': 7,
+			'C': 8
+		}
+		
+		const [bestTier, bestRank] = playerBestRank[key].split('');
+		const [currTier, currRank] = currTierRank.split('');
+
+		if (TIERS[currTier] > TIERS[bestTier] || (TIERS[currTier] == TIERS[bestTier] && parseInt(currRank) > parseInt(bestRank))) {
+			playerBestRank[key] = currTierRank;
+		}
+	} else {
+		playerBestRank[key] = currTierRank;
+	}
+});
+
 rankedResults = rankedResults.map((r) => ({
 	...r,
 	percentage: Math.round(r.wins / (r.wins + r.losses) * 100),
-	tier_rank: r.tier[0] + romanNumeral(r.rank)
+	tier_rank: r.tier[0] + romanNumeral(r.rank),
+	player_best_rank: playerBestRank[r.alt + r.queue_type]
 }));
 
 const rankedSheet = doc.sheetsById[1228422655];
@@ -182,6 +212,7 @@ await rankedSheet.setHeaderRow([
 	"wins",
 	"losses",
 	"percentage",
-	"tier_rank"
+	"tier_rank",
+	"player_best_rank"
 ]);
 await rankedSheet.addRows(rankedResults, {raw: true});
