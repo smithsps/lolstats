@@ -33,7 +33,9 @@ const trackedPlayers = [
     { name: "Dunktropolis", tag: "DUNK"},
     { name: "Shadow Swipe", tag: "NA1"},
     { name: "CowboyKitten", tag: "NA1"},
-    { name: "Plato The Potato", tag: "4916", alt: "Diogenes The Cat"}
+    { name: "Plato The Potato", tag: "4916", alt: "Diogenes The Cat"},
+    { name: "Arie Hon", tag: "NA1", alt: "Rezz"},
+    { name: "NTG76", tag: "NA1", alt: "NTG76"}
 ];
 
 export async function GetPlayerDetails() {
