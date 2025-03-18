@@ -40,6 +40,8 @@ type FeatQueryResults = {
 	feat_of_tactical_pos: number;
 	feat_of_control: number;
 	feat_of_control_pos: number;
+	total_no_jungle_games: number;
+	total_no_support_games: number;
 };
 
 const FEAT_QUERY = sql`
@@ -76,10 +78,10 @@ const FEAT_QUERY = sql`
 		IFNULL(ROUND(AVG(agwj.damage_dealt_to_objectives - agwj.damage_dealt_to_buildings), 2), 0) 'feat_of_control',
 		SUM(p.win) 'wins',
 		ROUND(100.0 * SUM(p.win) / COUNT(), 1) 'win%',
-		COUNT() 'total_games'
-		--SUM(CASE WHEN tpim.tracked_players >= 3 THEN 1 ELSE 0 END) 'valid_games' 
-		--COUNT(agws.match_id) 'total_no_support_games',
-		--COUNT(agws.match_id) 'total_no_jungle_games'
+		COUNT() 'total_games',
+		--SUM(CASE WHEN tpim.tracked_players >= 3 THEN 1 ELSE 0 END) 'valid_games'
+		COUNT(agws.match_id) 'total_no_support_games',
+		COUNT(agwj.match_id) 'total_no_jungle_games'
 		FROM matches m
 		JOIN ${participants} p on p.match_id = m.match_id 
 		JOIN ${players} p2 on p2.puuid  = p.puuid 
@@ -107,7 +109,9 @@ const FEAT_QUERY = sql`
 		feat_of_tactical,
 		ROW_NUMBER() OVER (ORDER BY feat_of_tactical DESC) 'feat_of_tactical_pos',
 		feat_of_control,
-		ROW_NUMBER() OVER (ORDER BY feat_of_control DESC) 'feat_of_control_pos'
+		ROW_NUMBER() OVER (ORDER BY feat_of_control DESC) 'feat_of_control_pos',
+		total_no_support_games,
+		total_no_jungle_games
 	from feats`;
 
 const results = EXPORT_DB.all<FeatQueryResults>(FEAT_QUERY);
@@ -131,6 +135,8 @@ await sheet.setHeaderRow([
 	"feat_of_tactical_pos",
 	"feat_of_control",
 	"feat_of_control_pos",
+	"total_no_support_games",
+	"total_no_jungle_games"
 ]);
 
 await sheet.addRows(results);
@@ -144,13 +150,24 @@ type RankedStats = {
 	tier: string,
 	rank: string,
 	wins: number,
-	losses: number
+	losses: number,
+	last_played: number
 }
 
 let rankedResults = EXPORT_DB.all<RankedStats>(sql`
-	SELECT p.alt, p.name, p.tag, r.queue_type, r.tier, r.rank, r.wins, r.losses
+	WITH
+	last_played_match_time AS (
+		SELECT 
+			p.puuid,
+			MAX(m.game_creation) 'last_played'
+		FROM matches m
+		JOIN participants p on p.match_id = m.match_id
+		GROUP BY 1
+	)
+	SELECT p.alt, p.name, p.tag, r.queue_type, r.tier, r.rank, r.wins, r.losses, l.last_played
 	FROM ranked_stats r
 	JOIN players p on p.puuid = r.puuid
+	JOIN last_played_match_time l on l.puuid = r.puuid
 `);
 
 const romanNumeral = (numeral: string) => {
@@ -213,6 +230,7 @@ await rankedSheet.setHeaderRow([
 	"losses",
 	"percentage",
 	"tier_rank",
-	"player_best_rank"
+	"player_best_rank",
+	"last_played"
 ]);
 await rankedSheet.addRows(rankedResults, {raw: true});
